@@ -1,0 +1,27 @@
+{
+  "id": "imageConverter",
+  "name": "ImageConverter",
+  "description": "Convert images between formats (PNG, JPG, WEBP, BMP, TIFF) from the DankBar",
+  "version": "0.1.0",
+  "author": "murilo-gotardo",
+  "repo": "https://github.com/murilo-gotardo/dms-image-converter",
+  "type": "widget",
+  "component": "./PopoutWidget.qml",
+  "settings": "./Settings.qml",
+  "capabilities": [
+    "dankbar-widget"
+  ],
+  "category": "utilities",
+  "distro": ["any"],
+  "compositors": [
+    "any"
+  ],
+  "dependencies": [
+    "imagemagick",
+    "wl-clipboard"
+  ],
+  "permissions": [
+    "settings_read",
+    "settings_write"
+  ]
+}
