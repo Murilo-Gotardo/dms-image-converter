@@ -36,7 +36,7 @@ PluginSettings {
         settingKey: "defaultFormat"
         label: "Default output format"
         description: "Format selected when the widget opens"
-        options: ["jpg", "png", "webp", "bmp", "tiff"]
+        options: ["jpg", "png", "webp", "bmp", "tiff", "pdf", "heic", "heif"]
         defaultValue: "jpg"
     }
 
@@ -44,19 +44,17 @@ PluginSettings {
         settingKey: "defaultQuality"
         label: "Default quality"
         description: "JPEG/WebP compression quality (10-100)"
-        from: 10
-        to: 100
-        stepSize: 1
+        minimum: 10
+        maximum: 100
         defaultValue: 92
     }
 
     SliderSetting {
         settingKey: "defaultDensity"
         label: "Default density"
-        description: "Density (in DPI) for PDF related conversions. Higher = more detailed output"
-        from: 50
-        to: 500
-        stepSize: 1
+        description: "Density (in DPI) for converting PDFs. Higher = more detailed output"
+        minimum: 50
+        maximum: 600
         defaultValue: 72
     }
 }

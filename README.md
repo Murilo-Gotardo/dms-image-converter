@@ -10,7 +10,7 @@ Drop a file, paste a path, or let it pick up whatever is in your clipboard. Choo
 
 ## Supported formats
 
-**Output:** JPG · PNG · WEBP · BMP · TIFF
+**Output:** JPG · PNG · WEBP · BMP · TIFF · PDF · HEIC · HEIF
 
 **Input:** all of the above + GIF
 
@@ -34,7 +34,7 @@ Converted files land in your configured output directory (`~/Pictures/converted`
 
 ## Quality
 
-The quality slider (10–100%) only appears for lossy formats (JPG and WEBP). Lossless formats have no slider.
+The quality slider (10–100%) only appears for lossy formats (JPG and WEBP). When converting PDFs, a DPI Desnsity slider (50-600) appears. Lossless formats have no slider.
 
 ---
 
@@ -74,6 +74,7 @@ Reload DMS to activate.
 | Output Directory | `~/Pictures/converted` | Where converted files are saved |
 | Default Format | `jpg` | Format selected when the widget opens |
 | Default Quality | `92` | Starting quality for lossy formats |
+| Default Density | `72` | Starting DPI for PDF conversions
 
 ---
 
