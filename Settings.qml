@@ -49,4 +49,14 @@ PluginSettings {
         stepSize: 1
         defaultValue: 92
     }
+
+    SliderSetting {
+        settingKey: "defaultDensity"
+        label: "Default density"
+        description: "Density (in DPI) for PDF related conversions. Higher = more detailed output"
+        from: 50
+        to: 500
+        stepSize: 1
+        defaultValue: 72
+    }
 }
