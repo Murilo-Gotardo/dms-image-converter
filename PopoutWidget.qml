@@ -11,21 +11,39 @@ PluginComponent {
 
     property var _popoutRef: null
     property string _dismissedPath: ""
-
     property string inputPath: ""
     property string outputFormat: "jpg"
-    property int quality: 92
     property string statusText: ""
+    property int quality: 92
+    property int density: 72
+    property int heifQuality: -1
     property bool converting: false
     property bool checkingClipboard: false
     property bool success: false
     property bool hasError: false
 
-    readonly property var formats: ["jpg", "png", "webp", "bmp", "tiff"]
+    readonly property var formats: ["jpg", "png", "webp", "bmp", "tiff", "pdf", "heic", "heif"]
     readonly property var formatIcons: ({ "webp": "language" })
-    readonly property var imageExts: [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif"]
-    readonly property var imageMimes: ["image/png", "image/jpeg", "image/webp", "image/bmp", "image/gif", "image/tiff"]
+    readonly property var imageExts: [".png", ".jpg", ".jpeg", ".webp", ".bmp", ".tiff", ".tif", ".gif", ".pdf", ".heic", ".heif"]
+    readonly property var imageMimes: ["image/png", "image/jpeg", "image/webp", "image/bmp", "image/gif", "image/tiff", "image/pdf", "image/heic", "image/heif"]
     readonly property string fileName: inputPath ? inputPath.split("/").pop() : ""
+    readonly property string inputExt: root.getExtension(inputPath)
+
+    function getExtension(path) {
+        var index = path.lastIndexOf(".")
+
+        if (index === -1) {
+            return null
+        }
+
+        var output = path.substring(index + 1)
+
+        return output
+    }
+
+    function formatSubset(start, end) {
+        return formats.slice(start, end)
+    }
 
     function resetStatus() {
         statusText = ""
@@ -36,13 +54,14 @@ PluginComponent {
     function resolveDir(raw) {
         var dir = (raw || "").trim()
         if (dir.startsWith("file://")) dir = dir.substring(7)
+        if (dir.startsWith("~")) dir = dir.replace(/~/, "$HOME")
         return dir
     }
 
     popoutWidth: 320
 
     Timer {
-        interval: 2000
+        interval: 1000
         repeat: true
         running: root._popoutRef !== null && root._popoutRef.shouldBeVisible
         onTriggered: root.silentClipboardCheck()
@@ -81,7 +100,7 @@ PluginComponent {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.margins: 12
-                height: 40
+                implicitHeight: 40
                 radius: 10
                 color: (root.converting || !root.inputPath) ? Qt.alpha(Theme.primary, 0.4) : Theme.primary
                 Behavior on color { ColorAnimation { duration: Theme.shortDuration } }
@@ -180,7 +199,8 @@ PluginComponent {
 
                         TextField {
                             Layout.fillWidth: true
-                            placeholderText: "or paste path..."
+                            placeholderText: "paste path..."
+                            placeholderTextColor: Theme.primary
                             background: null
                             color: Theme.surfaceText
                             font.pixelSize: Theme.fontSizeSmall
@@ -192,7 +212,7 @@ PluginComponent {
                         }
 
                         Rectangle {
-                            width: 28; height: 28; radius: 6
+                            implicitWidth: 28; implicitHeight: 28; radius: 6
                             color: root.checkingClipboard ? Qt.alpha(Theme.primary, 0.15) : "transparent"
                             Behavior on color { ColorAnimation { duration: Theme.shortDuration } }
 
@@ -231,38 +251,59 @@ PluginComponent {
 
             SectionLabel { text: "Output Format" }
 
-            Column {
-                Layout.fillWidth: true
-                spacing: 1
-
-                Repeater {
-                    model: root.formats
-
-                    ListItem {
-                        required property string modelData
-                        required property int index
-                        width: parent.width
-                        iconName: root.formatIcons[modelData] || "image"
-                        label: modelData.toUpperCase()
-                        selected: root.outputFormat === modelData
-                        isFirst: index === 0
-                        isLast: index === root.formats.length - 1
-                        onClicked: {
-                            root.outputFormat = modelData
-                            root.resetStatus()
+            RowLayout {
+                ColumnLayout{
+                    Repeater {
+                        model: formatSubset(0,(root.formats.length / 2))
+                        ListItem {
+                            required property string modelData
+                            required property int index
+                            iconName: root.formatIcons[modelData] || "image"
+                            width: parent.width / 2
+                            Layout.fillWidth: true
+                            label: modelData.toUpperCase()
+                            selected: root.outputFormat === modelData
+                            isFirst: index === 0
+                            isLast: index === (root.formats.length / 2) - 1
+                            onClicked: {
+                                root.outputFormat = modelData
+                                root.resetStatus()
+                            }
+                        }
+                    }
+                }
+                ColumnLayout{
+                    Repeater {
+                        model: formatSubset((root.formats.length / 2), root.formats.length)
+                        ListItem {
+                            required property string modelData
+                            required property int index
+                            iconName: root.formatIcons[modelData] || "image"
+                            width: parent.width / 2
+                            Layout.fillWidth: true
+                            label: modelData.toUpperCase()
+                            selected: root.outputFormat === modelData
+                            // isFirst: index === (root.formats.length / 2)
+                            // isLast: index === root.formats.length - 1
+                            isFirst: index === 0
+                            isLast: index === (root.formats.length / 2) - 1
+                            onClicked: {
+                                root.outputFormat = modelData
+                                root.resetStatus()
+                            }
                         }
                     }
                 }
             }
 
-            SectionLabel { text: "Options" }
+            SectionLabel { text: "Options"}
 
             Rectangle {
                 Layout.fillWidth: true
                 implicitHeight: qualityLayout.implicitHeight + 24
                 color: Theme.surfaceContainerHigh
                 radius: 10
-                visible: root.outputFormat === "jpg" || root.outputFormat === "webp"
+                visible: root.outputFormat === "jpg" || root.outputFormat === "webp" || root.inputExt === "pdf"
 
                 ColumnLayout {
                     id: qualityLayout
@@ -271,7 +312,7 @@ PluginComponent {
 
                     RowLayout {
                         Layout.fillWidth: true
-
+                        visible: root.outputFormat === "jpg" || root.outputFormat === "webp"
                         DankIcon { name: "tune"; size: Theme.fontSizeSmall; color: Theme.surfaceVariantText }
 
                         StyledText {
@@ -282,19 +323,85 @@ PluginComponent {
                             leftPadding: 8
                         }
 
-                        StyledText {
-                            text: root.quality + "%"
+                        TextField {
+                            id: optionDisplay
+                            text: Math.round(optionSlider.value).toString()
                             font.pixelSize: Theme.fontSizeSmall
                             font.weight: Font.Medium
-                            color: Theme.primary
+                            color: Theme.surfaceText
+                            focus: true
+                            background: null
+                            horizontalAlignment: TextInput.AlignRight
+                            validator: IntValidator {bottom: 10; top: 100}
+                            onEditingFinished: {
+                                var validInput = acceptableInput
+                                if (validInput) {
+                                    optionSlider.value = parseFloat(optionDisplay.text)
+                                }
+                                else {
+                                    optionSlider.value = 92
+                                }
+                            }
                         }
                     }
 
                     Slider {
+                        id: optionSlider
+                        visible: root.outputFormat === "jpg" || root.outputFormat === "webp"
                         Layout.fillWidth: true
                         from: 10; to: 100; stepSize: 1
                         value: root.quality
-                        onValueChanged: root.quality = value
+                        onValueChanged: {
+                            optionDisplay.text = Math.round(optionSlider.value).toString()
+                            root.quality = optionSlider.value
+                        }
+                    }
+
+                    RowLayout {
+                        Layout.fillWidth: true
+                        visible: root.inputExt == "pdf"
+                        DankIcon { name: "tune"; size: Theme.fontSizeSmall; color: Theme.surfaceVariantText }
+
+                        StyledText {
+                            Layout.fillWidth: true
+                            text: "Density (DPI)"
+                            font.pixelSize: Theme.fontSizeSmall
+                            color: Theme.surfaceText
+                            leftPadding: 8
+                        }
+
+                        TextField {
+                            id: optionDisplay2
+                            text: Math.round(optionSlider2.value).toString()
+                            font.pixelSize: Theme.fontSizeSmall
+                            font.weight: Font.Medium
+                            color: Theme.surfaceText
+                            background: null
+                            horizontalAlignment: TextInput.AlignRight
+                            focus: true
+                            validator: IntValidator {bottom: 50; top: 600}
+                            onEditingFinished: {
+                                var validInput = acceptableInput
+                                if (validInput) {
+                                    optionSlider2.value = parseFloat(optionDisplay2.text)
+                                }
+                                else {
+                                    optionSlider2.value = 72
+                                }
+                            }
+                        }
+                    }
+
+                    Slider {
+                        id: optionSlider2
+                        visible: root.inputExt == "pdf"
+                        Layout.fillWidth: true
+                        from: 50; to: 600; stepSize: 5
+                        value: root.density
+                        onValueChanged: {
+                            optionDisplay2.text = Math.round(optionSlider2.value).toString()
+                            root.density = optionSlider2.value
+                        }
                     }
                 }
             }
@@ -302,7 +409,7 @@ PluginComponent {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: 8
-                height: 44
+                implicitHeight: 44
                 color: Theme.surfaceContainerHigh
                 radius: 10
 
@@ -314,8 +421,9 @@ PluginComponent {
 
                     TextField {
                         Layout.fillWidth: true
-                        placeholderText: "~/Pictures/converted"
+                        placeholderText: "Output Directory: "
                         background: null
+                        placeholderTextColor: Theme.primary
                         color: Theme.surfaceText
                         font.pixelSize: Theme.fontSizeSmall
                         text: root.resolveDir(root.pluginData.outputDir)
@@ -326,7 +434,7 @@ PluginComponent {
                 }
             }
 
-            Item { height: 12 }
+            Item { implicitHeight: 12 }
         }
     }
 
@@ -473,9 +581,12 @@ PluginComponent {
 
         var savedDir = resolveDir(pluginData.outputDir)
         var hasQuality = outputFormat === "jpg" || outputFormat === "webp"
+        var hasDensity = inputExt === "pdf"
         var baseName = inputPath.split("/").pop().replace(/\.[^/.]+$/, "")
-                       + (hasQuality ? "_q" + quality : "")
-        var qualityArgs = hasQuality ? " -quality " + quality : ""
+                       + (hasQuality ? "_q" + quality : "") + (hasDensity ? "_d" + density : "")
+        var qualityArgs = hasQuality ? " -quality " + quality + " " : ""
+        var densityArgs = hasDensity ? " -density " + density + " " : ""
+        var heifArgs = (inputExt === "heic" || inputExt === "heif") ? " -quality " + heifQuality + " " : ""
         var outDirExpr = savedDir ? JSON.stringify(savedDir) : '"$HOME/Pictures/converted"'
 
         var cmd = "mkdir -p " + outDirExpr
@@ -485,13 +596,13 @@ PluginComponent {
             + ' && out="$dir/$base.$ext"'
             + " && n=1"
             + ' && while [ -f "$out" ]; do out="$dir/$base($n).$ext"; n=$((n+1)); done'
-            + " && ( magick -limit memory 512MiB -limit map 1GiB -limit area 0 "
-            + JSON.stringify(inputPath) + qualityArgs + ' "$out" 2>&1 ; test -f "$out" )'
+            + " && ( magick -limit memory 1GiB -limit map 1GiB -limit area 1GiB "
+            + densityArgs + heifArgs + qualityArgs + JSON.stringify(inputPath) + ' "$out" 2>&1 ; test -f "$out" )'
             + " && printf 'SAVED:%s' \"$out\""
 
         Proc.runCommand("imgconv_convert", ["sh", "-c", cmd], function(output, exitCode) {
             root.converting = false
-            if (exitCode === 0) {
+            if (exitCode === 0 || exitCode === 1) {
                 const idx = (output || "").indexOf("SAVED:")
                 const savedName = idx >= 0
                     ? output.substring(idx + 6).trim().split("/").pop()
